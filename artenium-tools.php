@@ -1,8 +1,22 @@
+<?php
+/*
+Plugin Name: Artenium Tools
+Plugin URI:  https://github.com/Artenium/artenium-wp-tools/
+Description: Outils Wordpress artenium
+Version:     1.0.0
+Author:      Alan
+Author URI:  https://www.artenium.com
+License:     GPL2
+*/
+
+if (!defined('ABSPATH')) exit;
+
 //////////////////////////////////////////////////////////////////////////////////
 // ARTENIUM VARNISH / REDIS / OPCACHE PURGE
 //////////////////////////////////////////////////////////////////////////////////
 
 $custom_varnish_host = parse_url(get_site_url(), PHP_URL_HOST);
+
 add_action('admin_bar_menu', function($wp_admin_bar) {
     if (!current_user_can('manage_options')) return;
 
@@ -34,6 +48,7 @@ add_action('admin_post_custom_varnish_purge', function() {
 
     global $custom_varnish_host;
 
+    // PURGE VARNISH
     $response = wp_remote_request('http://127.0.0.1/.*', [
         'method'  => 'PURGE',
         'headers' => [
@@ -43,17 +58,17 @@ add_action('admin_post_custom_varnish_purge', function() {
         'timeout' => 5,
     ]);
 
-    // --- OPCACHE ---
+    // OPCACHE
     if (function_exists('opcache_reset')) {
         opcache_reset();
     }
 	
-    // --- REDIS ---
+    // REDIS
     if (function_exists('wp_cache_flush')) {
         wp_cache_flush();
     }
 
-    // --- Message ---
+    // Message
     if (is_wp_error($response)) {
         $msg = 'Purge Varnish + OPCache + Redis : Erreur (' . $response->get_error_message() . ')';
     } else {
@@ -70,8 +85,6 @@ add_action('admin_notices', function() {
     }
 });
 
-
-
 //////////////////////////////////////////////////////////////////////////////////
 // CACHER REDIS OBJECT CACHE
 //////////////////////////////////////////////////////////////////////////////////
@@ -79,8 +92,6 @@ add_action('admin_notices', function() {
 add_action('admin_bar_menu', function ($wp_admin_bar) {
     $wp_admin_bar->remove_node('redis-cache');
 }, 999);
-
-
 
 //////////////////////////////////////////////////////////////////////////////////
 // SVG UPLOAD
@@ -91,102 +102,11 @@ add_filter('upload_mimes', function($mimes) {
     return $mimes;
 });
 
-
-
 //////////////////////////////////////////////////////////////////////////////////
-// Fonction pour activer les shortcode SCF auquel WP n'aurait pas accès
+// Activer les shortcodes SCF
 //////////////////////////////////////////////////////////////////////////////////
 
 add_action( 'acf/init', 'set_acf_settings' );
 function set_acf_settings() {
     acf_update_setting( 'enable_shortcode', true );
 }
-
-
-
-//////////////////////////////////////////////////////////////////////////////////
-// TITLE ANIMATION - Word reveal for .reveal-title class
-//////////////////////////////////////////////////////////////////////////////////
-function heading_word_animation() {
-    ?>
-    <style>
-        .reveal-title .elementor-heading-title {
-            visibility: hidden;
-        }
-        body.elementor-editor-active .reveal-title .elementor-heading-title {
-            visibility: visible !important;
-        }
-        .reveal-title .elementor-heading-title word-anim {
-            opacity: 0;
-            transform: translateY(16px);
-            display: inline-block;
-            visibility: visible;
-        }
-        .reveal-title .elementor-heading-title.word-anim-active word-anim {
-            animation: fadeUp 0.32s forwards;
-        }
-        @keyframes fadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        setTimeout(() => {
-            function wrapTextNodes(node, delayRef) {
-                let fragment = document.createDocumentFragment();
-                node.childNodes.forEach(child => {
-                    if (child.nodeType === Node.TEXT_NODE) {
-                        let words = child.textContent.split(/\s+/);
-                        words.forEach(word => {
-                            if (word.trim().length > 0) {
-                                let el = document.createElement("word-anim");
-                                el.textContent = word;
-                                el.style.animationDelay = (delayRef.value * 0.08) + "s";
-                                delayRef.value++;
-                                fragment.appendChild(el);
-                                fragment.append(" ");
-                            }
-                        });
-                    } else if (child.nodeType === Node.ELEMENT_NODE) {
-                        let clone = child.cloneNode(false);
-                        clone.appendChild(wrapTextNodes(child, delayRef));
-                        fragment.appendChild(clone);
-                    }
-                });
-                return fragment;
-            }
-            document.querySelectorAll(".reveal-title .elementor-heading-title").forEach(title => {
-                if (!title.dataset.animated) {
-                    let delayRef = { value: 0 };
-                    let wrapped = wrapTextNodes(title, delayRef);
-                    title.innerHTML = "";
-                    title.appendChild(wrapped);
-                    title.dataset.animated = "true";
-                    title.style.visibility = "visible";
-                }
-            });
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add("word-anim-active");
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, {
-                threshold: 0.33
-            });
-            document.querySelectorAll(".reveal-title .elementor-heading-title").forEach(title => {
-                observer.observe(title);
-            });
-		// Attente de 400ms avant d’exécuter le script.
-		// Laisse par ex.GTranslate faire le travail de traduction AVANT application de l'effet.
-        }, 400); 
-
-    });
-    </script>
-    <?php
-}
-add_action('wp_head', 'heading_word_animation');
