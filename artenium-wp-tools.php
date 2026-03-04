@@ -96,6 +96,9 @@ add_action('admin_notices', function() {
 add_action('admin_bar_menu', function ($wp_admin_bar) {
     $wp_admin_bar->remove_node('redis-cache');
 }, 999);
+add_action('admin_menu', function () {
+    remove_submenu_page('options-general.php', 'redis-cache');
+}, 999);
 
 
 
