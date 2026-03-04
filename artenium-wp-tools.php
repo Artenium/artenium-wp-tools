@@ -3,7 +3,7 @@
 Plugin Name: Artenium Tools
 Plugin URI:  https://github.com/Artenium/artenium-wp-tools/
 Description: Outils Wordpress artenium.
-Version:     1.0.7
+Version:     1.0.8
 Author:      Alan
 Author URI:  https://www.artenium.com
 License:     GPL2
