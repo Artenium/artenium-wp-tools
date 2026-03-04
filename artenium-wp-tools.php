@@ -2,7 +2,7 @@
 /*
 Plugin Name: Artenium Tools
 Plugin URI:  https://github.com/Artenium/artenium-wp-tools/
-Description: Outils Wordpress artenium
+Description: Outils Wordpress artenium. Extension créée pour fonctionner avec Varnish + Redis + OPCache. La base de données Redis et le préfixe sont à éditer dans wp-config.php.
 Version:     1.0.1
 Author:      Alan
 Author URI:  https://www.artenium.com
