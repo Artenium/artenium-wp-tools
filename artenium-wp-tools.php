@@ -218,15 +218,25 @@ add_action('wp_head', 'heading_word_animation');
 //////////////////////////////////////////////////////////////////////////////////
 
 add_filter('site_transient_update_plugins', function($transient) {
+	
     if (empty($transient->checked)) return $transient;
+	
+    $plugin_slug = null;
+	
+    foreach ($transient->checked as $key => $ver) {
+        if (strpos($key, 'artenium-wp-tools') !== false) {
+            $plugin_slug = $key;
+            break;
+        }
+    }
+    if (!$plugin_slug) return $transient;
 
-    $plugin_slug = plugin_basename(__FILE__); // artenium-wp-tools/artenium-tools.php
     $current_version = $transient->checked[$plugin_slug] ?? '0';
 
     $github_api = 'https://api.github.com/repos/Artenium/artenium-wp-tools/releases/latest';
-
     $response = wp_remote_get($github_api, [
-        'headers' => ['User-Agent' => 'WordPress/' . get_bloginfo('version')]
+        'headers' => ['User-Agent' => 'WordPress/' . get_bloginfo('version')],
+        'timeout' => 15,
     ]);
 
     if (is_wp_error($response)) return $transient;
@@ -249,4 +259,5 @@ add_filter('site_transient_update_plugins', function($transient) {
     }
 
     return $transient;
+
 });
