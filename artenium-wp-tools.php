@@ -36,7 +36,7 @@ add_action('admin_bar_menu', function($wp_admin_bar) {
     $wp_admin_bar->add_node([
         'id'     => 'custom_varnish_purge_desc',
         'parent' => 'custom_varnish_purge',
-        'title'  => 'Vide les caches Varnish, Redis et OPCache',
+        'title'  => 'Vide les caches Varnish, Redis et OPcache',
         'meta'   => [
             'class' => 'ab-item-disabled',
         ],
