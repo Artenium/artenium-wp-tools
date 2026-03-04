@@ -3,70 +3,13 @@
 Plugin Name: Artenium Tools
 Plugin URI:  https://github.com/Artenium/artenium-wp-tools/
 Description: Outils Wordpress artenium
-Version:     1.0.2
+Version:     1.0.1
 Author:      Alan
 Author URI:  https://www.artenium.com
 License:     GPL2
 */
 
 if (!defined('ABSPATH')) exit;
-
-
-
-//////////////////////////////////////////////////////////////////////////////////
-// CONFIG REDIS
-//////////////////////////////////////////////////////////////////////////////////
-
-add_filter('wp_cache_config', function($config) {
-    // valeurs par défaut si aucune option n'est définie
-    $config['prefix']   = get_option('artenium_redis_prefix', 'arteniumtemplate');
-    $config['database'] = intval(get_option('artenium_redis_database', 0));
-    return $config;
-}, 0);
-
-add_action('admin_menu', function() {
-    add_submenu_page(
-        'options-general.php',
-        'Réglages artenium',
-        'Réglages artenium',
-        'manage_options',
-        'artenium-settings',
-        'artenium_settings_page'
-    );
-});
-
-function artenium_redis_settings_page() {
-    if (!current_user_can('manage_options')) return;
-
-    if (isset($_POST['artenium_redis_nonce']) && wp_verify_nonce($_POST['artenium_redis_nonce'], 'artenium_redis_save')) {
-        update_option('artenium_redis_prefix', sanitize_text_field($_POST['artenium_redis_prefix']));
-        update_option('artenium_redis_database', intval($_POST['artenium_redis_database']));
-        echo '<div class="updated"><p>Options sauvegardées.</p></div>';
-    }
-
-    $prefix = get_option('artenium_redis_prefix', 'arteniumtemplate');
-    $database = get_option('artenium_redis_database', 0);
-
-    ?>
-    <div class="wrap">
-        <h1>Réglages Redis</h1>
-        <form method="post">
-            <?php wp_nonce_field('artenium_redis_save','artenium_redis_nonce'); ?>
-            <table class="form-table">
-                <tr>
-                    <th scope="row">Préfixe</th>
-                    <td><input type="text" name="artenium_redis_prefix" value="<?php echo esc_attr($prefix); ?>" /></td>
-                </tr>
-                <tr>
-                    <th scope="row">Base de données</th>
-                    <td><input type="number" name="artenium_redis_database" value="<?php echo esc_attr($database); ?>" min="0" /></td>
-                </tr>
-            </table>
-            <?php submit_button(); ?>
-        </form>
-    </div>
-    <?php
-}
 
 
 
