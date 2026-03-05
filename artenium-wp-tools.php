@@ -238,15 +238,16 @@ add_filter('site_transient_update_plugins', function ($transient) {
         set_transient($cache_key, $data, 12 * HOUR_IN_SECONDS);
     }
 
+	$download_url = !empty($data->assets) ? $data->assets[0]->browser_download_url : $data->zipball_url;
     $remote_version = ltrim($data->tag_name, 'v');
 
     if (version_compare($remote_version, $current_version, '>')) {
         $transient->response[$plugin_slug] = (object) [
-            'slug'        => 'artenium-wp-tools',
-            'plugin'      => $plugin_slug,
-            'new_version' => $remote_version,
-            'package' => $data->assets[0]->browser_download_url,
-            'url'         => 'https://github.com/Artenium/artenium-wp-tools',
+            'slug'			=> 'artenium-wp-tools',
+            'plugin'      	=> $plugin_slug,
+            'new_version' 	=> $remote_version,
+            'package'		=> $download_url,
+            'url'         	=> 'https://github.com/Artenium/artenium-wp-tools',
         ];
     }
 
