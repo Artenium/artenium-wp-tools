@@ -210,3 +210,57 @@ function heading_word_animation() {
     <?php
 }
 add_action('wp_head', 'heading_word_animation');
+
+
+
+//////////////////////////////////////////////////////////////////////////////////
+// TITLE ANIMATION - Word reveal for .reveal-title class
+//////////////////////////////////////////////////////////////////////////////////
+
+add_filter('site_transient_update_plugins', function ($transient) {
+    if (empty($transient->checked)) return $transient;
+
+    $plugin_slug = 'artenium-wp-tools/artenium-wp-tools.php';
+    $current_version = $transient->checked[$plugin_slug] ?? '0';
+
+    // Cache 12h pour éviter de spammer l'API GitHub
+    $cache_key = 'artenium_github_release';
+    $data = get_transient($cache_key);
+
+    if (!$data) {
+        $response = wp_remote_get('https://api.github.com/repos/Artenium/artenium-wp-tools/releases/latest', [
+            'headers' => ['User-Agent' => 'WordPress/' . get_bloginfo('version')],
+            'timeout' => 15,
+        ]);
+        if (is_wp_error($response)) return $transient;
+        $data = json_decode(wp_remote_retrieve_body($response));
+        if (empty($data->tag_name)) return $transient;
+        set_transient($cache_key, $data, 12 * HOUR_IN_SECONDS);
+    }
+
+    $remote_version = ltrim($data->tag_name, 'v');
+
+    if (version_compare($remote_version, $current_version, '>')) {
+        $transient->response[$plugin_slug] = (object) [
+            'slug'        => 'artenium-wp-tools', // ✅ juste le dossier
+            'plugin'      => $plugin_slug,
+            'new_version' => $remote_version,
+            'package'     => $data->zipball_url,
+            'url'         => 'https://github.com/Artenium/artenium-wp-tools',
+        ];
+    }
+
+    return $transient;
+});
+
+// Correction du nom de dossier après installation
+add_filter('upgrader_post_install', function ($response, $hook_extra, $result) {
+    global $wp_filesystem;
+    if (($hook_extra['plugin'] ?? '') !== 'artenium-wp-tools/artenium-wp-tools.php') return $response;
+
+    $target = WP_PLUGIN_DIR . '/artenium-wp-tools';
+    $wp_filesystem->move($result['destination'], $target);
+    $result['destination'] = $target;
+
+    return $result;
+}, 10, 3);
