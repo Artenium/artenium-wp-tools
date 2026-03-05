@@ -1,5 +1,6 @@
 Informations :
 
+- Le plugin doit _toujours_ être installé à partir d'une release. Si le bouton de téléchargement sur la page principale est utilisé, le répertoire à l'intérieur du zip voit son nom modifié par Github (artenium-wp-tools-main) et le système de mises à jour ne marchera pas. Voir la partie **Release** plus bas.
 - Les outils artenium fonctionnent avec l'extension [Redis Object Cache](https://wordpress.org/plugins/redis-cache) (doit être installée et activée dans `/wp-admin/options-general.php?page=redis-cache`) sur les serveurs artenium qui font tourner Varnish + Redis + OPcache.
 - La base de données Redis et le préfixe pour éviter les collisions de données sont à éditer dans wp-config.php à la racine de Wordpress :
   ```
