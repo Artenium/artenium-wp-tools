@@ -7,5 +7,5 @@ Informations :
   ```
   // REDIS CACHE
   define( 'WP_REDIS_DATABASE', 2 );
-  define( 'WP_REDIS_PREFIX', 'respir' );
+  define( 'WP_REDIS_PREFIX', 'prefixedusite' );
   ```
