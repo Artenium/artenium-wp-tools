@@ -1,5 +1,14 @@
 Informations :
 
+- Les outils artenium sont regroupés dans une extension Wordpress, et sont nécessaires au bon fonctionnement du système de cache sur un Wordpress hébergé chez artenium.
+- Ces outils sont les suivants :
+  - un bouton de purge OPCache/Varnish/Redis remplaçant le bouton de l'extension [Redis Object Cache](https://wordpress.org/plugins/redis-cache)
+  - l'autorisation utilisateur d'upload de SVG dans la section média
+  - Un fix offrant la visibilité des shortcodes SCF pour les autres plugins
+  - Une animation de titre que nous utilisons de manière récurrente
+
+Installation :
+
 - Le plugin doit _toujours_ être installé à partir d'une release. Si le bouton de téléchargement sur la page principale est utilisé, le répertoire à l'intérieur du zip voit son nom modifié par Github (artenium-wp-tools-main) et le système de mises à jour ne marchera pas. Voir la partie **Release** plus bas.
 - Les outils artenium fonctionnent avec l'extension [Redis Object Cache](https://wordpress.org/plugins/redis-cache) (doit être installée et activée dans `/wp-admin/options-general.php?page=redis-cache`) sur les serveurs artenium qui font tourner Varnish + Redis + OPcache.
 - La base de données Redis et le préfixe pour éviter les collisions de données sont à éditer dans wp-config.php à la racine de Wordpress :
