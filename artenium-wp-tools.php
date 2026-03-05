@@ -1,9 +1,9 @@
-res au<?php
+<?php
 /*
 Plugin Name: Artenium Tools
 Plugin URI:  https://github.com/Artenium/artenium-wp-tools/
 Description: Outils Wordpress artenium nécessaires au bon fonctionnement de votre site web.
-Version:     1.0.1
+Version:     1.0.2
 Author:      Alan
 Author URI:  https://www.artenium.com
 License:     GPL2
