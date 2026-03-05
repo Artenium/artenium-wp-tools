@@ -14,5 +14,4 @@ Informations :
 Release :
 
 - Lors de la création d'une release, penser à bien mettre à jour le numéro de version dans `artenium-wp-tools.php` vers une version supérieure (ex: 1.0.2 > 1.0.3) mais aussi dans le tag de la release.
-- Une release doit être accompagnée du zip téléchargé à la racine du Github (avec le bouton sur l'image ci-dessous), renommé `artenium-wp-tools.zip`.
-- Le répertoire de l'extension `artenium-wp-tools-main` à l'intérieur du zip doit être renommé `artenium-wp-tools` sinon les mises à jour automatiques ne marcheront pas.
+- Une release doit être accompagnée du zip téléchargé à la racine du Github, renommé `artenium-wp-tools.zip`. Le répertoire de l'extension `artenium-wp-tools-main` à l'intérieur de ce zip doit être renommé `artenium-wp-tools` sinon les mises à jour automatiques ne marcheront pas.
