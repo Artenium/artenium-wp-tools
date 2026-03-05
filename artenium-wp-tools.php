@@ -242,7 +242,7 @@ add_filter('site_transient_update_plugins', function ($transient) {
 
     if (version_compare($remote_version, $current_version, '>')) {
         $transient->response[$plugin_slug] = (object) [
-            'slug'        => 'artenium-wp-tools', // ✅ juste le dossier
+            'slug'        => 'artenium-wp-tools',
             'plugin'      => $plugin_slug,
             'new_version' => $remote_version,
             'package'     => $data->zipball_url,
