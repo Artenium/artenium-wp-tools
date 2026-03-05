@@ -252,15 +252,3 @@ add_filter('site_transient_update_plugins', function ($transient) {
 
     return $transient;
 });
-
-// Correction du nom de dossier après installation
-add_filter('upgrader_post_install', function ($response, $hook_extra, $result) {
-    global $wp_filesystem;
-    if (($hook_extra['plugin'] ?? '') !== 'artenium-wp-tools/artenium-wp-tools.php') return $response;
-
-    $target = WP_PLUGIN_DIR . '/artenium-wp-tools';
-    $wp_filesystem->move($result['destination'], $target);
-    $result['destination'] = $target;
-
-    return $result;
-}, 10, 3);
