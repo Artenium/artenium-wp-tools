@@ -4,7 +4,7 @@ Informations :
 - Ces outils sont les suivants :
   - un bouton de purge OPCache/Varnish/Redis remplaçant le bouton de l'extension [Redis Object Cache](https://wordpress.org/plugins/redis-cache)
   - l'autorisation utilisateur d'upload de SVG dans la section média
-  - Un fix offrant la visibilité des shortcodes SCF pour les autres plugins
+  - un fix offrant la visibilité des shortcodes SCF pour les autres plugins
 
 Installation :
 
