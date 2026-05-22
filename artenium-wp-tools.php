@@ -90,15 +90,36 @@ add_action('admin_notices', function() {
  
  
 //////////////////////////////////////////////////////////////////////////////////
-// PURGE AUTOMATIQUE LORS DE LA SAUVEGARDE D'UN POST
+// PURGE AUTOMATIQUE LORS DE LA SAUVEGARDE
 //////////////////////////////////////////////////////////////////////////////////
- 
-add_action('save_post', function($post_id) {
-	// 2 Exceptions : on ne purge pas quand Wordpress crée une autosave ou une révision
-    if (wp_is_post_revision($post_id)) return;
-    if (wp_is_post_autosave($post_id)) return;
+
+function artenium_maybe_purge_cache($post_id = 0) {
+    static $already_purged = false;
+    if ($already_purged) {
+        return;
+    }
+    if ($post_id) {
+        if (wp_is_post_revision($post_id)) {
+            return;
+        }
+        if (wp_is_post_autosave($post_id)) {
+            return;
+        }
+    }
+    $already_purged = true;
     artenium_purge_all_caches();
-}, 10, 1);
+}
+
+// WORDPRESS
+add_action('save_post', 'artenium_maybe_purge_cache', 10, 1);
+
+// ELEMENTOR
+add_action('elementor/editor/after_save', 'artenium_maybe_purge_cache', 10, 1);
+
+// BRICKS
+add_action('wp_ajax_bricks_save_post', function() {
+    artenium_maybe_purge_cache();
+}, 10);
 
 
 
