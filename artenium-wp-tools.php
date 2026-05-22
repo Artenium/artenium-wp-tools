@@ -3,7 +3,7 @@
 Plugin Name: Artenium Tools
 Plugin URI:  https://github.com/Artenium/artenium-wp-tools/
 Description: Outils Wordpress artenium nécessaires au bon fonctionnement de votre site web.
-Version:     1.0.2
+Version:     1.0.3
 Author:      Équipe artenium
 Author URI:  https://www.artenium.com
 License:     GPL2
@@ -14,43 +14,11 @@ if (!defined('ABSPATH')) exit;
 
 
 //////////////////////////////////////////////////////////////////////////////////
-// ARTENIUM VARNISH / REDIS / OPCACHE PURGE
+// FONCTION DE PURGE CENTRALISÉE
 //////////////////////////////////////////////////////////////////////////////////
-
-$custom_varnish_host = parse_url(get_site_url(), PHP_URL_HOST);
-
-add_action('admin_bar_menu', function($wp_admin_bar) {
-    if (!current_user_can('manage_options')) return;
-
-    $url = wp_nonce_url(
-        admin_url('admin-post.php?action=custom_varnish_purge'),
-        'custom_varnish_purge_nonce'
-    );
-
-    $wp_admin_bar->add_node([
-        'id'    => 'custom_varnish_purge',
-        'title' => '❌ Vider les caches',
-        'href'  => $url,
-    ]);
-
-    $wp_admin_bar->add_node([
-        'id'     => 'custom_varnish_purge_desc',
-        'parent' => 'custom_varnish_purge',
-        'title'  => 'Vide les caches Varnish, Redis et OPcache',
-        'meta'   => [
-            'class' => 'ab-item-disabled',
-        ],
-    ]);
-
-}, 100);
-
-add_action('admin_post_custom_varnish_purge', function() {
-    if (!current_user_can('manage_options')) wp_die('Unauthorized');
-    check_admin_referer('custom_varnish_purge_nonce');
-
+ 
+function artenium_purge_all_caches() {
     global $custom_varnish_host;
-
-    // PURGE VARNISH
     $response = wp_remote_request('http://127.0.0.1/.*', [
         'method'  => 'PURGE',
         'headers' => [
@@ -59,33 +27,78 @@ add_action('admin_post_custom_varnish_purge', function() {
         ],
         'timeout' => 5,
     ]);
-
-    // OPCACHE
-    if (function_exists('opcache_reset')) {
-        opcache_reset();
-    }
-	
-    // REDIS
-    if (function_exists('wp_cache_flush')) {
-        wp_cache_flush();
-    }
-
-    // Message
+ 
+    if (function_exists('opcache_reset')) opcache_reset();
+    if (function_exists('wp_cache_flush')) wp_cache_flush();
+ 
+    return $response;
+}
+ 
+ 
+ 
+//////////////////////////////////////////////////////////////////////////////////
+// ARTENIUM VARNISH / REDIS / OPCACHE PURGE — BOUTON MANUEL
+//////////////////////////////////////////////////////////////////////////////////
+ 
+add_action('admin_bar_menu', function($wp_admin_bar) {
+    if (!current_user_can('manage_options')) return;
+ 
+    $url = wp_nonce_url(
+        admin_url('admin-post.php?action=custom_varnish_purge'),
+        'custom_varnish_purge_nonce'
+    );
+ 
+    $wp_admin_bar->add_node([
+        'id'    => 'custom_varnish_purge',
+        'title' => '❌ Vider les caches',
+        'href'  => $url,
+    ]);
+ 
+    $wp_admin_bar->add_node([
+        'id'     => 'custom_varnish_purge_desc',
+        'parent' => 'custom_varnish_purge',
+        'title'  => 'Vide les caches Varnish, Redis et OPcache',
+        'meta'   => [
+            'class' => 'ab-item-disabled',
+        ],
+    ]);
+ 
+}, 100);
+ 
+add_action('admin_post_custom_varnish_purge', function() {
+    if (!current_user_can('manage_options')) wp_die('Unauthorized');
+    check_admin_referer('custom_varnish_purge_nonce');
+ 
+    $response = artenium_purge_all_caches();
+ 
     if (is_wp_error($response)) {
         $msg = 'Purge Varnish + OPCache + Redis : Erreur (' . $response->get_error_message() . ')';
     } else {
         $msg = 'Purge Varnish + OPCache + Redis : OK (Varnish HTTP ' . wp_remote_retrieve_response_code($response) . ')';
     }
-
+ 
     wp_redirect(add_query_arg('purge_done_msg', urlencode($msg), wp_get_referer()));
     exit;
 });
-
+ 
 add_action('admin_notices', function() {
     if (isset($_GET['purge_done_msg'])) {
         echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($_GET['purge_done_msg']) . '</p></div>';
     }
 });
+ 
+ 
+ 
+//////////////////////////////////////////////////////////////////////////////////
+// PURGE AUTOMATIQUE LORS DE LA SAUVEGARDE D'UN POST
+//////////////////////////////////////////////////////////////////////////////////
+ 
+add_action('save_post', function($post_id) {
+	// 2 Exceptions : on ne purge pas quand Wordpress crée une autosave ou une révision
+    if (wp_is_post_revision($post_id)) return;
+    if (wp_is_post_autosave($post_id)) return;
+    artenium_purge_all_caches();
+}, 10, 1);
 
 
 
