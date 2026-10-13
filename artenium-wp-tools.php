@@ -210,8 +210,9 @@ final class Auto_WebP_Converter {
 			return $data;
 		}
 		$label                = wp_slash( self::$labels[ $key ] );
-		$data['post_excerpt'] = $label; // Légende.
-		$data['post_content'] = $label; // Description.
+		$data['post_title']   = $label; // Titre
+		$data['post_excerpt'] = $label; // Légende
+		$data['post_content'] = $label; // Description
 		return $data;
 	}
  
