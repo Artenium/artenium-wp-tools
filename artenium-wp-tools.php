@@ -18,76 +18,78 @@ if (!defined('ABSPATH')) exit;
 //////////////////////////////////////////////////////////////////////////////////
 
 final class Auto_WebP_Converter {
-
+ 
 	const OPT_QUALITY = 'awc_quality';
-	const OPT_KEEP    = 'awc_keep_if_larger';
-
-	/** Nom d'origine du fichier envoyé (avant tout nettoyage par WordPress). */
+	const OPT_MAX_W   = 'awc_max_width';
+	const OPT_MAX_H   = 'awc_max_height';
+ 
+	// Nom d'origine du fichier envoyé (avant tout nettoyage par WordPress).
 	private static string $original_name = '';
-
-	/** Textes à injecter dans le média, indexés par nom de fichier final. */
+ 
+	// Textes à injecter dans le média, indexés par nom de fichier final.
 	private static array $labels = [];
-
+ 
 	public static function init(): void {
 		// Capture du nom d'origine (upload classique, REST, sideload).
 		add_filter( 'wp_handle_upload_prefilter', [ __CLASS__, 'remember_name' ] );
 		add_filter( 'wp_handle_sideload_prefilter', [ __CLASS__, 'remember_name' ] );
-
+ 
 		// Renommage + conversion.
 		add_filter( 'wp_handle_upload', [ __CLASS__, 'process' ], 10, 2 );
-
+ 
 		// Légende + description (avant insertion), texte alternatif (après insertion).
 		add_filter( 'wp_insert_attachment_data', [ __CLASS__, 'fill_texts' ], 10, 4 );
 		add_action( 'add_attachment', [ __CLASS__, 'set_alt' ] );
-
+ 
 		add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
 		add_action( 'admin_notices', [ __CLASS__, 'maybe_notice' ] );
 		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), [ __CLASS__, 'action_links' ] );
 	}
-
-	/* ------------------------------ Utilitaires ------------------------------ */
-
+ 
+	// UTILITAIRES
+ 
 	private static function quality(): int {
 		return max( 1, min( 100, (int) get_option( self::OPT_QUALITY, 72 ) ) );
 	}
-
+ 
+	// Dimension maximale en pixels (0 = pas de limite).
+	private static function max_dim( string $option, int $default ): int {
+		return max( 0, (int) get_option( $option, $default ) );
+	}
+ 
 	private static function supported(): bool {
 		return wp_image_editor_supports( [ 'mime_type' => 'image/webp' ] );
 	}
-
-	/** "Mon Image_été (2)" => "mon-image-ete-2" */
+ 
+	// "Mon Image_été (2)" => "mon-image-ete-2"
 	private static function slugify( string $name ): string {
 		$s = strtolower( remove_accents( $name ) );
 		$s = trim( preg_replace( '/[^a-z0-9]+/', '-', $s ), '-' );
 		return '' !== $s ? $s : 'image';
 	}
-
-	/** "Mon_Image-été 2" => "Mon Image été 2" */
+ 
+	// "Mon_Image-été 2" => "Mon Image été 2"
 	private static function make_label( string $original ): string {
 		$name  = pathinfo( $original, PATHINFO_FILENAME );
 		$label = trim( preg_replace( '/[\s_-]+/', ' ', $name ) );
 		return sanitize_text_field( (string) apply_filters( 'awc_label', $label, $original ) );
 	}
-
+ 
 	private static function url_with_basename( string $url, string $basename ): string {
 		return trailingslashit( dirname( $url ) ) . $basename;
 	}
-
-	/* ------------------------------ Pipeline upload ------------------------------ */
-
+ 
+	// PIPELINE UPLOAD
+ 
 	public static function remember_name( $file ) {
 		self::$original_name = ( is_array( $file ) && isset( $file['name'] ) ) ? (string) $file['name'] : '';
 		return $file;
 	}
-
-	/**
-	 * @param array  $upload  [ 'file', 'url', 'type' ] ou [ 'error' ]
-	 * @param string $context 'upload' ou 'sideload'
-	 */
+ 
 	public static function process( $upload, $context = 'upload' ) {
 		$original            = self::$original_name;
 		self::$original_name = '';
-
+ 
 		if ( ! is_array( $upload ) || ! empty( $upload['error'] ) || empty( $upload['file'] ) || empty( $upload['type'] ) ) {
 			return $upload;
 		}
@@ -97,93 +99,108 @@ final class Auto_WebP_Converter {
 		if ( '' === $original ) {
 			$original = wp_basename( $upload['file'] );
 		}
-
+ 
 		$label = self::make_label( $original );
-
+ 
 		if ( apply_filters( 'awc_rename', true, $upload, $context ) ) {
 			$upload = self::rename_safe( $upload, $original );
 		}
-
-		$upload = self::to_webp( $upload, $context );
-
+ 
+		$upload = self::optimize( $upload, $context );
+ 
 		if ( '' !== $label && apply_filters( 'awc_fill_texts', true, $upload, $context ) ) {
 			self::$labels[ wp_basename( $upload['file'] ) ] = $label;
 		}
-
+ 
 		return $upload;
 	}
-
-	/** Renomme le fichier : minuscules, tirets, sans accents ni espaces. */
+ 
+	// Renomme le fichier : minuscules, tirets, sans accents ni espaces.
 	private static function rename_safe( array $upload, string $original ): array {
 		$info = pathinfo( $upload['file'] );
 		$ext  = strtolower( $info['extension'] ?? '' );
 		$slug = self::slugify( pathinfo( $original, PATHINFO_FILENAME ) );
-
+ 
 		$target = '' !== $ext ? $slug . '.' . $ext : $slug;
 		if ( $target === $info['basename'] ) {
 			return $upload; // Déjà propre.
 		}
-
+ 
 		$target   = wp_unique_filename( $info['dirname'], $target );
 		$new_path = trailingslashit( $info['dirname'] ) . $target;
-
-		if ( ! @rename( $upload['file'], $new_path ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+ 
+		if ( ! @rename( $upload['file'], $new_path ) ) {
 			return $upload;
 		}
-
+ 
 		$upload['file'] = $new_path;
 		$upload['url']  = self::url_with_basename( $upload['url'], $target );
 		return $upload;
 	}
-
-	/** Convertit JPG/PNG en WebP et remplace le fichier. */
-	private static function to_webp( array $upload, $context ): array {
+ 
+	//Redimensionne (1920x1080 max par défaut) puis convertit les JPG/PNG en WebP.
+	private static function optimize( array $upload, $context ): array {
 		if ( ! in_array( $upload['type'], [ 'image/jpeg', 'image/png' ], true ) ) {
 			return $upload;
 		}
-		if ( ! apply_filters( 'awc_should_convert', true, $upload, $context ) || ! self::supported() ) {
-			return $upload;
-		}
-
+ 
+		$convert = apply_filters( 'awc_should_convert', true, $upload, $context ) && self::supported();
+		$max_w   = (int) apply_filters( 'awc_max_width', self::max_dim( self::OPT_MAX_W, 1920 ), $upload );
+		$max_h   = (int) apply_filters( 'awc_max_height', self::max_dim( self::OPT_MAX_H, 1080 ), $upload );
+ 
 		$source = $upload['file'];
 		$editor = wp_get_image_editor( $source );
 		if ( is_wp_error( $editor ) ) {
 			return $upload;
 		}
-
+ 
 		// Orientation EXIF appliquée avant conversion (les métadonnées sont perdues en WebP).
 		if ( 'image/jpeg' === $upload['type'] && method_exists( $editor, 'maybe_exif_rotate' ) ) {
 			$editor->maybe_exif_rotate();
 		}
-
-		$editor->set_quality( (int) apply_filters( 'awc_quality', self::quality(), $upload ) );
-
-		$info = pathinfo( $source );
-		$name = wp_unique_filename( $info['dirname'], $info['filename'] . '.webp' );
-		$dest = trailingslashit( $info['dirname'] ) . $name;
-
-		$saved = $editor->save( $dest, 'image/webp' );
-		if ( is_wp_error( $saved ) || empty( $saved['path'] ) || ! file_exists( $saved['path'] ) ) {
-			return $upload; // Échec : on garde l'original.
+ 
+		// Redimensionnement : proportions conservées, pas de recadrage, jamais d'agrandissement.
+		$resized = false;
+		$size    = $editor->get_size();
+		if ( $max_w > 0 && $max_h > 0 && ! empty( $size['width'] ) && ( $size['width'] > $max_w || $size['height'] > $max_h ) ) {
+			$resized = ! is_wp_error( $editor->resize( $max_w, $max_h, false ) );
 		}
-
-		// Garde l'original si le WebP est plus lourd.
-		if ( get_option( self::OPT_KEEP, true ) && filesize( $saved['path'] ) >= filesize( $source ) ) {
-			wp_delete_file( $saved['path'] );
+ 
+		if ( ! $convert && ! $resized ) {
 			return $upload;
 		}
-
-		wp_delete_file( $source );
-
-		$upload['file'] = $saved['path'];
-		$upload['url']  = self::url_with_basename( $upload['url'], wp_basename( $saved['path'] ) );
-		$upload['type'] = 'image/webp';
+ 
+		$editor->set_quality( (int) apply_filters( 'awc_quality', self::quality(), $upload ) );
+ 
+		if ( $convert ) {
+			$info = pathinfo( $source );
+			$name = wp_unique_filename( $info['dirname'], $info['filename'] . '.webp' );
+			$dest = trailingslashit( $info['dirname'] ) . $name;
+ 
+			$saved = $editor->save( $dest, 'image/webp' );
+ 
+			if ( ! is_wp_error( $saved ) && ! empty( $saved['path'] ) && file_exists( $saved['path'] ) ) {
+				wp_delete_file( $source );
+ 
+				$upload['file'] = $saved['path'];
+				$upload['url']  = self::url_with_basename( $upload['url'], wp_basename( $saved['path'] ) );
+				$upload['type'] = 'image/webp';
+				return $upload;
+			}
+ 
+			if ( ! $resized ) {
+				return $upload; // Échec de conversion, rien à réduire : on garde l'original.
+			}
+		}
+ 
+		// Pas de WebP (non supporté, désactivé ou en échec) : on enregistre la version réduite dans le format d'origine.
+		$editor->save( $source, $upload['type'] );
 		return $upload;
 	}
-
-	/* ------------------------------ Légende, description, alt ------------------------------ */
-
-	/** Filtre wp_insert_attachment_data : les données reçues sont "slashées". */
+ 
+	// LEGENDE / DESCRIPTION / ALT
+ 
+	// Filtre wp_insert_attachment_data : les données reçues sont "slashées".
 	public static function fill_texts( $data, $postarr = [], $unsanitized = [], $update = false ) {
 		if ( $update || ! empty( $postarr['ID'] ) || empty( $data['guid'] ) ) {
 			return $data;
@@ -197,7 +214,7 @@ final class Auto_WebP_Converter {
 		$data['post_content'] = $label; // Description.
 		return $data;
 	}
-
+ 
 	public static function set_alt( $post_id ): void {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
@@ -210,22 +227,24 @@ final class Auto_WebP_Converter {
 		update_post_meta( $post_id, '_wp_attachment_image_alt', wp_slash( self::$labels[ $key ] ) );
 		unset( self::$labels[ $key ] );
 	}
-
-	/* ------------------------------ Réglages ------------------------------ */
-
+ 
+	// REGLAGES
+ 
 	public static function register_settings(): void {
 		register_setting( 'media', self::OPT_QUALITY, [
 			'type'              => 'integer',
 			'sanitize_callback' => static fn( $v ) => max( 1, min( 100, (int) $v ) ),
 			'default'           => 82,
 		] );
-		register_setting( 'media', self::OPT_KEEP, [
-			'type'              => 'boolean',
-			'sanitize_callback' => 'rest_sanitize_boolean',
-		] );
-
+		foreach ( [ self::OPT_MAX_W, self::OPT_MAX_H ] as $opt ) {
+			register_setting( 'media', $opt, [
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			] );
+		}
+ 
 		add_settings_section( 'awc_section', __( 'Conversion WebP', 'auto-webp-converter' ), '__return_false', 'media' );
-
+ 
 		add_settings_field( self::OPT_QUALITY, __( 'Qualité WebP', 'auto-webp-converter' ), static function () {
 			printf(
 				'<input type="number" min="1" max="100" step="1" name="%1$s" value="%2$d" class="small-text"> <span class="description">%3$s</span>',
@@ -234,22 +253,24 @@ final class Auto_WebP_Converter {
 				esc_html__( '1 à 100 (80-85 est un bon compromis).', 'auto-webp-converter' )
 			);
 		}, 'media', 'awc_section' );
-
-		add_settings_field( self::OPT_KEEP, __( 'Original conservé', 'auto-webp-converter' ), static function () {
+ 
+		add_settings_field( self::OPT_MAX_W, __( 'Dimensions maximales', 'auto-webp-converter' ), static function () {
 			printf(
-				'<label><input type="checkbox" name="%1$s" value="1" %2$s> %3$s</label>',
-				esc_attr( self::OPT_KEEP ),
-				checked( (bool) get_option( self::OPT_KEEP, true ), true, false ),
-				esc_html__( 'Garder le JPG/PNG d\'origine si le WebP obtenu est plus lourd.', 'auto-webp-converter' )
+				'<input type="number" min="0" step="1" name="%1$s" value="%2$d" class="small-text"> &times; <input type="number" min="0" step="1" name="%3$s" value="%4$d" class="small-text"> px <span class="description">%5$s</span>',
+				esc_attr( self::OPT_MAX_W ),
+				self::max_dim( self::OPT_MAX_W, 1920 ),
+				esc_attr( self::OPT_MAX_H ),
+				self::max_dim( self::OPT_MAX_H, 1080 ),
+				esc_html__( 'largeur × hauteur. Les images JPG/PNG plus grandes sont réduites à l\'upload (proportions conservées). 0 = pas de limite.', 'auto-webp-converter' )
 			);
 		}, 'media', 'awc_section' );
 	}
-
+ 
 	public static function action_links( array $links ): array {
 		array_unshift( $links, '<a href="' . esc_url( admin_url( 'options-media.php' ) ) . '">' . esc_html__( 'Réglages', 'auto-webp-converter' ) . '</a>' );
 		return $links;
 	}
-
+ 
 	public static function maybe_notice(): void {
 		if ( self::supported() || ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -263,7 +284,7 @@ final class Auto_WebP_Converter {
 			. '</p></div>';
 	}
 }
-
+ 
 Auto_WebP_Converter::init();
 
 
