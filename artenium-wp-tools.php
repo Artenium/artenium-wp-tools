@@ -138,7 +138,7 @@ final class Auto_WebP_Converter {
 		return $upload;
 	}
  
-	//Redimensionne (1920x1080 max par défaut) puis convertit les JPG/PNG en WebP.
+	// Redimensionne (1920x1440 max par défaut) puis convertit les JPG/PNG en WebP.
 	private static function optimize( array $upload, $context ): array {
 		if ( ! in_array( $upload['type'], [ 'image/jpeg', 'image/png' ], true ) ) {
 			return $upload;
@@ -146,7 +146,7 @@ final class Auto_WebP_Converter {
  
 		$convert = apply_filters( 'awc_should_convert', true, $upload, $context ) && self::supported();
 		$max_w   = (int) apply_filters( 'awc_max_width', self::max_dim( self::OPT_MAX_W, 1920 ), $upload );
-		$max_h   = (int) apply_filters( 'awc_max_height', self::max_dim( self::OPT_MAX_H, 1080 ), $upload );
+		$max_h   = (int) apply_filters( 'awc_max_height', self::max_dim( self::OPT_MAX_H, 1440 ), $upload );
  
 		$source = $upload['file'];
 		$editor = wp_get_image_editor( $source );
