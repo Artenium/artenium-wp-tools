@@ -250,7 +250,7 @@ final class Auto_WebP_Converter {
 				'<input type="number" min="1" max="100" step="1" name="%1$s" value="%2$d" class="small-text"> <span class="description">%3$s</span>',
 				esc_attr( self::OPT_QUALITY ),
 				self::quality(),
-				esc_html__( '1 à 100 (80-85 est un bon compromis).', 'auto-webp-converter' )
+				esc_html__( '1 à 100.', 'auto-webp-converter' )
 			);
 		}, 'media', 'awc_section' );
  
@@ -261,7 +261,7 @@ final class Auto_WebP_Converter {
 				self::max_dim( self::OPT_MAX_W, 1920 ),
 				esc_attr( self::OPT_MAX_H ),
 				self::max_dim( self::OPT_MAX_H, 1080 ),
-				esc_html__( 'largeur × hauteur. Les images JPG/PNG plus grandes sont réduites à l\'upload (proportions conservées). 0 = pas de limite.', 'auto-webp-converter' )
+				esc_html__( '(largeur × hauteur). 0 = pas de limite.', 'auto-webp-converter' )
 			);
 		}, 'media', 'awc_section' );
 	}
