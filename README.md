@@ -5,6 +5,9 @@ Informations :
   - un bouton de purge OPCache/Varnish/Redis remplaçant le bouton de l'extension [Redis Object Cache](https://wordpress.org/plugins/redis-cache)
   - l'autorisation utilisateur d'upload de SVG dans la section média
   - un fix offrant la visibilité des shortcodes SCF pour les autres plugins
+  - la conversion des images JPG, BMP et PNG en WebP lors de l'upload
+  - l'insertion du nom de l'image dans les champs "Titre", "Texte alternatif", "Description" et "Légende" de Wordpress
+  - le renommage de l'image webP en slug safe pour le web
 
 Installation :
 
