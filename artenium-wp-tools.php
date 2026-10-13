@@ -267,7 +267,7 @@ final class Auto_WebP_Converter {
 				esc_attr( self::OPT_MAX_W ),
 				self::max_dim( self::OPT_MAX_W, 1920 ),
 				esc_attr( self::OPT_MAX_H ),
-				self::max_dim( self::OPT_MAX_H, 1080 ),
+				self::max_dim( self::OPT_MAX_H, 1440 ),
 				esc_html__( '(largeur × hauteur). 0 = pas de limite.', 'auto-webp-converter' )
 			);
 		}, 'media', 'awc_section' );
