@@ -140,8 +140,14 @@ final class Auto_WebP_Converter {
  
 	// Redimensionne (1920x1440 max par défaut) puis convertit les JPG/PNG en WebP.
 	private static function optimize( array $upload, $context ): array {
-		if ( ! in_array( $upload['type'], [ 'image/jpeg', 'image/png' ], true ) ) {
-			return $upload;
+		
+		if ( ! in_array( $upload['type'], [
+		    'image/jpeg',
+		    'image/png',
+		    'image/bmp',
+		    'image/x-ms-bmp',
+		], true ) ) {
+		    return $upload;
 		}
  
 		$convert = apply_filters( 'awc_should_convert', true, $upload, $context ) && self::supported();
@@ -188,8 +194,8 @@ final class Auto_WebP_Converter {
 				return $upload;
 			}
  
-			if ( ! $resized ) {
-				return $upload; // Échec de conversion, rien à réduire : on garde l'original.
+			if ( ! $resized || in_array( $upload['type'], [ 'image/bmp', 'image/x-ms-bmp' ], true ) ) {
+			    return $upload; // Échec de conversion : on garde l'original.
 			}
 		}
  
