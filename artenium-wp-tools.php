@@ -241,7 +241,7 @@ final class Auto_WebP_Converter {
 		register_setting( 'media', self::OPT_QUALITY, [
 			'type'              => 'integer',
 			'sanitize_callback' => static fn( $v ) => max( 1, min( 100, (int) $v ) ),
-			'default'           => 82,
+			'default'           => 72,
 		] );
 		foreach ( [ self::OPT_MAX_W, self::OPT_MAX_H ] as $opt ) {
 			register_setting( 'media', $opt, [
